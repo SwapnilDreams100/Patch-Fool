@@ -71,12 +71,12 @@ def main():
 
     logger = my_logger(args)
     meter = my_meter()
-
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
     patch_size = 16    
-    filter = torch.ones([1, 3, patch_size, patch_size]).float().cuda()
+    filter = torch.ones([1, 3, patch_size, patch_size]).float().to(device)
 
     if args.network == 'ResNet152':
         model = ResNet152(pretrained=True)
@@ -96,15 +96,15 @@ def main():
         print('Wrong Network')
         raise
 
-    model = model.cuda()
+    model = model.to(device)
     model = torch.nn.DataParallel(model)
     model.eval()
 
-    criterion = nn.CrossEntropyLoss().cuda()
+    criterion = nn.CrossEntropyLoss().to(device)
     # eval dataset
     loader = get_loaders(args)
-    mu = torch.tensor(args.mu).view(3, 1, 1).cuda()
-    std = torch.tensor(args.std).view(3, 1, 1).cuda()
+    mu = torch.tensor(args.mu).view(3, 1, 1).to(device)
+    std = torch.tensor(args.std).view(3, 1, 1).to(device)
 
     start_time = time.time()
 
@@ -116,9 +116,9 @@ def main():
         if i == int(len(loader) * args.dataset_size):
             break
 
-        X, y = X.cuda(), y.cuda()
+        X, y = X.to(device), y.to(device)
         patch_num_per_line = int(X.size(-1) / patch_size)
-        delta = torch.zeros_like(X).cuda()
+        delta = torch.zeros_like(X).to(device)
         delta.requires_grad = True
 
         model.zero_grad()
@@ -159,7 +159,7 @@ def main():
             raise
 
         '''build mask'''
-        mask = torch.zeros([X.size(0), 1, X.size(2), X.size(3)]).cuda()
+        mask = torch.zeros([X.size(0), 1, X.size(2), X.size(3)]).to(device)
         if args.sparse_pixel_num != 0:
             learnable_mask = mask.clone()
 
@@ -206,7 +206,7 @@ def main():
         else:
             '''select by learnable mask'''
             learnable_mask.requires_grad = True
-        delta = delta.cuda()
+        delta = delta.to(device)
         delta.requires_grad = True
 
         opt = torch.optim.Adam([delta], lr=args.attack_learning_rate)
