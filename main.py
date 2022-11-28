@@ -263,10 +263,12 @@ def main():
                     if atten_num == 0:
                         continue
                     atten_map = atten[atten_num]
+                    print(atten_map.size())
                     atten_map = atten_map.mean(dim=1)
                     atten_map = atten_map.view(-1, atten_map.size(-1))
                     atten_map = -torch.log(atten_map)
                     if 'DeiT' in args.network:
+                        print(atten_map.size(), max_patch_index_matrix.size())
                         atten_loss = F.nll_loss(atten_map, max_patch_index_matrix + 1)
                     else:
                         atten_loss = F.nll_loss(atten_map, max_patch_index_matrix)
